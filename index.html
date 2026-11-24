@@ -1,0 +1,1039 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Kaizen Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@400&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: shop-floor board. Header strip, month tabs, three category cards for the chosen month, full-year grid below. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #14202b;
+  --muted: #566573;
+  --line: #d3dae1;
+  --best: #a35f00;
+  --most: #1b5fa8;
+  --first: #1a7346;
+  --focus: #14202b;
+  --font-display: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f161d; --surface: #17212b; --ink: #e8eef3; --muted: #93a3b1; --line: #2a3743;
+    --best: #f5b04a; --most: #6aa8ea; --first: #5ccb8f; --focus: #e8eef3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f161d; --surface: #17212b; --ink: #e8eef3; --muted: #93a3b1; --line: #2a3743;
+  --best: #f5b04a; --most: #6aa8ea; --first: #5ccb8f; --focus: #e8eef3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; border-bottom: 3px solid var(--ink); padding-bottom: 12px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.6rem, 9vw, 4.4rem); line-height: .95; letter-spacing: .02em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 46ch; }
+.yearpick { display: flex; align-items: center; gap: 6px; }
+.yearpick button, .yearpick select { font: 600 1.3rem var(--font-display); letter-spacing: .08em; background: var(--surface); color: var(--ink); border: 1px solid var(--line); height: 44px; min-width: 44px; padding: 0 10px; cursor: pointer; }
+.yearpick button:hover:not(:disabled), .yearpick select:hover { border-color: var(--ink); }
+.yearpick button:disabled { opacity: .35; cursor: default; }
+
+.sample { font-size: 13px; color: var(--muted); border: 1px dashed var(--line); padding: 8px 12px; margin: 0; }
+
+.pickers { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.pickers .months { flex: 1 1 420px; min-width: 0; }
+.months { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 6px; }
+.months button {
+  font: 600 13px var(--font-body); letter-spacing: .06em; text-transform: uppercase;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: 10px 0; cursor: pointer;
+}
+.months button:hover { border-color: var(--ink); }
+.months button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.months button.empty { color: var(--muted); }
+.months button.empty[aria-pressed="true"] { color: var(--bg); }
+
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.card .tag { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: .1em; text-transform: uppercase; color: var(--c); }
+.card .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
+.card .body { padding: 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.card .name { font-size: 1.5rem; font-weight: 600; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+.card .dept { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+.card .what { margin: 8px 0 0; }
+.card .stat { margin-top: auto; padding-top: 14px; display: flex; align-items: baseline; gap: 8px; border-top: 1px solid var(--line); }
+.card .stat b { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--c); font-variant-numeric: tabular-nums; }
+.card .stat span { color: var(--muted); font-size: 13px; }
+.best { --c: var(--best); } .most { --c: var(--most); } .first { --c: var(--first); }
+.banner { display: block; width: 100%; height: auto; background: #ffffff; border: 1px solid var(--line); }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.brand { display: inline-flex; align-items: center; background: var(--surface); border: 1px solid var(--line); padding: 8px 14px; margin-bottom: 16px; min-height: 52px; max-width: 100%; }
+.brand img { display: block; max-height: 84px; max-width: 100%; }
+.brand .ph { font-family: var(--font-display); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-size: 1rem; }
+.plink { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.plink:hover { text-decoration-color: currentColor; }
+.who { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.who > div { min-width: 0; }
+.avatar { width: 76px; height: 76px; flex: none; border-radius: 4px; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--surface)); color: var(--c, var(--muted)); font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; letter-spacing: .04em; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar.lg { width: 112px; height: 112px; font-size: 2.6rem; }
+/* a picture is shown whole, never cropped: the box takes the picture's own proportions (the IDs are 634 x 576 px) */
+.avatar.full { width: 130px; height: auto; background: var(--surface); border: 1px solid var(--line); }
+.avatar.full img { width: 100%; height: auto; object-fit: contain; }
+.avatar.lg.full { width: clamp(140px, 38vw, 220px); }
+/* ID pictures are shown whole (634 x 576), never cropped */
+.avatar.has-photo { width: 104px; height: auto; background: #ffffff; border: 1px solid var(--line); }
+.avatar.has-photo.lg { width: min(220px, 100%); }
+.avatar.has-photo img { object-fit: contain; }
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(8, 14, 20, .6); display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px max(16px, env(safe-area-inset-left, 0px)) 24px max(16px, env(safe-area-inset-right, 0px)); padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
+.panel { background: var(--surface); color: var(--ink); border: 1px solid var(--line); width: 100%; max-width: 560px; padding: 24px 20px 20px; position: relative; }
+.panel .close { position: absolute; top: 8px; right: 8px; font: 600 22px/1 var(--font-body); width: 40px; height: 40px; background: none; color: var(--ink); border: 1px solid var(--line); cursor: pointer; }
+.panel h2 { margin: 0; }
+.panel .who { padding-right: 44px; margin-bottom: 8px; }
+.ph { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; letter-spacing: .1em; text-transform: uppercase; margin: 22px 0 8px; }
+.muted { color: var(--muted); margin: 0; }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--c); color: var(--c); padding: 4px 10px; font-size: 13px; font-weight: 600; }
+.kz { border-top: 1px solid var(--line); padding: 10px 0; }
+.kz .meta { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.kz .ttl { font-weight: 600; overflow-wrap: anywhere; }
+.kz .note { color: var(--muted); font-size: 14px; }
+.months button:disabled { opacity: .35; cursor: default; }
+.months button:disabled:hover { border-color: var(--line); }
+.certs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.certbox { container-type: inline-size; cursor: pointer; min-width: 0; }
+.certbox:hover .cert { box-shadow: 0 0 0 2px var(--ink); }
+.cert { --cc: #1f4e8c; aspect-ratio: 1.414 / 1; background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.55)), url("bg/certificate-bg.jpg") center / cover #ffffff; color: #14202b; border: 1.4cqw solid #1f4e8c; outline: .35cqw solid #1f4e8c; outline-offset: -2.6cqw; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 4.2cqw 7cqw 4cqw; text-align: center; font-family: var(--font-body); }
+.cert.best { --cc: #9a5a00; } .cert.most { --cc: #1b5fa8; } .cert.first { --cc: #1a7346; }
+.clogo { height: 9.5cqw; width: auto; display: block; }
+.c-org { font-size: 1.7cqw; letter-spacing: .14em; text-transform: uppercase; color: #4a5866; font-weight: 600; }
+.c-head { font-family: var(--font-display); font-weight: 700; font-size: 5.4cqw; letter-spacing: .08em; text-transform: uppercase; line-height: 1; }
+.c-award { font-family: var(--font-display); font-weight: 700; font-size: 3.4cqw; letter-spacing: .16em; text-transform: uppercase; color: var(--cc); line-height: 1; }
+.c-pre { font-size: 1.7cqw; color: #4a5866; }
+.c-name { font-family: var(--font-display); font-weight: 700; font-size: 6.8cqw; letter-spacing: .04em; text-transform: uppercase; line-height: 1; border-bottom: .3cqw solid var(--cc); padding: 0 3cqw .8cqw; max-width: 100%; overflow-wrap: anywhere; }
+.c-dept { font-size: 1.7cqw; letter-spacing: .1em; text-transform: uppercase; color: #4a5866; }
+.c-for { font-size: 2cqw; max-width: 80%; line-height: 1.35; }
+.c-res { font-size: 1.8cqw; font-weight: 600; color: var(--cc); max-width: 80%; }
+.c-foot { display: flex; justify-content: center; text-align: center; align-items: end; width: 100%; gap: 3cqw; }
+.c-sig { flex: 1; border-top: .2cqw solid #14202b; padding-top: .6cqw; font-size: 1.4cqw; color: #4a5866; }
+.c-date { flex: 1; font-size: 1.6cqw; font-weight: 600; }
+.panel.wide { max-width: 900px; overflow-x: auto; }
+.panel.wide .certbox { min-width: 640px; cursor: default; }
+.panel.wide .certbox:hover .cert { box-shadow: none; }
+.seebtn { margin-top: 12px; align-self: flex-start; font: 600 13px var(--font-body); letter-spacing: .04em; background: none; color: var(--c); border: 1px solid var(--c); padding: 8px 12px; cursor: pointer; }
+.seebtn:hover { background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+.kz .note b { color: var(--ink); font-weight: 600; }
+.kz .note { margin-top: 2px; }
+.kimgbtn { background: none; border: 0; padding: 0; margin-top: 8px; cursor: zoom-in; display: block; max-width: 100%; }
+.kimgbtn img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); }
+.kph { margin-top: 8px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; padding: 14px; text-align: center; }
+.backbtn { align-self: flex-start; font: 700 1.1rem var(--font-display); letter-spacing: .1em; text-transform: uppercase; background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: 8px 16px; cursor: pointer; }
+.backbtn:hover { border-color: var(--ink); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font: 700 1.15rem var(--font-display); letter-spacing: .1em; text-transform: uppercase; background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: 10px 20px; cursor: pointer; }
+.tabs button:hover { border-color: var(--ink); }
+.tabs button[aria-current="page"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.view { display: flex; flex-direction: column; gap: 28px; }
+.intro p { max-width: 65ch; margin: 0 0 16px; }
+.prose { max-width: 65ch; margin: 0; }
+.cta { font: 700 1.2rem var(--font-display); letter-spacing: .1em; text-transform: uppercase; background: var(--ink); color: var(--bg); border: 0; padding: 12px 22px; cursor: pointer; }
+.about { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; background: var(--surface); border: 1px solid var(--line); padding: 20px; }
+.about img { width: 130px; height: auto; display: block; }
+.info { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; min-width: 0; }
+.info dt { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: 3px; }
+.info dd { margin: 0; overflow-wrap: anywhere; }
+.todo { color: var(--muted); }
+@media (max-width: 560px) { .about { grid-template-columns: 1fr; } .info { grid-template-columns: 1fr; gap: 2px; } .info dd { margin-bottom: 10px; } }
+.card .aw { margin: 0; }
+.coords { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.coord { background: var(--surface); border: 1px solid var(--line); padding: 16px; display: flex; gap: 14px; align-items: center; min-width: 0; }
+.coord > div:last-child { min-width: 0; }
+.cname { font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 64px); align-items: center; background: #ffffff; color: #14202b; border: 1px solid var(--line); padding: clamp(20px, 4vw, 48px); }
+.hero-seal { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto; }
+.hero-title { font-family: "Playfair Display", Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(1.9rem, 4.4vw, 3rem); line-height: 1.25; color: #3a8fd0; margin: 0 0 24px; text-transform: uppercase; text-wrap: balance; letter-spacing: 0; }
+.hero p { margin: 0 0 16px; max-width: 52ch; line-height: 1.6; }
+.hero p.b { font-weight: 700; }
+.hero .cta { margin-top: 8px; background: #1f4e8c; color: #ffffff; }
+@media (max-width: 700px) { .hero { grid-template-columns: 1fr; } .hero-seal { max-width: 260px; } }
+.about { display: block; }
+.oh { margin-top: 32px; }
+.others { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.others li { background: var(--surface); border: 1px solid var(--line); padding: 10px 14px; min-width: 0; }
+.others .n { font-weight: 600; overflow-wrap: anywhere; }
+.others .d { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-left: 8px; }
+.others .t { display: block; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.others li.none { grid-column: 1 / -1; border-style: dashed; color: var(--muted); }
+.pending { border: 1px dashed var(--line); padding: 28px 16px; color: var(--muted); text-align: center; background: var(--surface); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: .1em; text-transform: uppercase; border-bottom: 2px solid var(--ink); }
+thead th.best { color: var(--best); } thead th.most { color: var(--most); } thead th.first { color: var(--first); }
+tbody th { font-weight: 600; white-space: nowrap; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td, tbody tr:hover th { background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+tbody tr.sel td, tbody tr.sel th { background: color-mix(in srgb, var(--ink) 9%, var(--surface)); }
+td .dim { color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .cards > * { animation: rise .25s ease-out; } }
+@keyframes rise { from { opacity: .0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Stars Board: one card per department, a star for every Kaizen a person has taken part in. */
+.navrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.starsbtn { color: #8a5a00; border-color: #8a5a00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .starsbtn { color: #f5b04a; border-color: #f5b04a; } }
+:root[data-theme="dark"] .starsbtn { color: #f5b04a; border-color: #f5b04a; }
+.hero .ctarow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.hero .ctarow .cta { margin-top: 0; }
+.hero .cta.alt { background: #ffffff; color: #1f4e8c; border: 2px solid #1f4e8c; }
+.starfilter { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.starfilter label { font: 700 1.1rem var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+.starfilter select { font: 600 1.1rem var(--font-display); letter-spacing: .06em; background: var(--surface); color: var(--ink); border: 1px solid var(--line); height: 44px; padding: 0 10px; cursor: pointer; }
+.starsum { color: var(--muted); margin: 0; }
+.starsum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.depts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.dept-card { background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.dept-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--ink); }
+.dept-head h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; letter-spacing: .06em; text-transform: uppercase; margin: 0; overflow-wrap: anywhere; }
+.dept-head .tot { color: var(--star); font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dept-card ul { list-style: none; margin: 0; padding: 0; }
+.dept-card li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 16px; border-bottom: 1px solid var(--line); min-width: 0; }
+.dept-card li:last-child { border-bottom: 0; }
+.dept-card .pn { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.dept-card .none { color: var(--muted); font-weight: 400; }
+.stars { color: var(--star); letter-spacing: .08em; font-size: 1.15rem; line-height: 1.2; text-align: right; flex: none; max-width: 55%; overflow-wrap: anywhere; }
+.stars.zero { color: var(--muted); }
+.stars small { font-size: 12px; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+:root { --star: #b36b00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --star: #f5b04a; } }
+:root[data-theme="dark"] { --star: #f5b04a; }
+</style>
+
+<div class="wrap">
+  <div id="homeView" class="view">
+    <section class="hero">
+      <img class="hero-seal" src="logo.jpg" alt="Tiglao Medical Center Foundation, Inc. seal, MMVIII">
+      <div>
+        <h1 class="hero-title">Tiglao Medical Center Foundation, Inc.</h1>
+        <p class="b">Recognizing Ideas. Celebrating Improvements. Building Excellence Together.</p>
+        <p>Welcome to our official Kaizen Recognition Portal!</p>
+        <p>This platform is exclusively created for our organization to recognize, appreciate, and celebrate the efforts of employees who continuously strive to make our workplace better.</p>
+        <p>Here, we highlight the innovative ideas, successful improvement projects, and valuable contributions of our employees across different departments.</p>
+        <p>Let us continue working together to build a culture of innovation, teamwork, efficiency, and continuous improvement.</p>
+        <p class="b">One Organization. One Team. Continuous Improvement.</p>
+        <div class="ctarow">
+          <button type="button" class="cta" id="ctaBoard">Open the Kaizen Board</button>
+          <button type="button" class="cta alt" id="ctaStars">&#9733; Stars Board</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Kaizen Committee</h2>
+      <div class="coords" id="coords"></div>
+    </section>
+  </div>
+
+  <div id="boardView" class="view" hidden>
+  <div class="navrow">
+    <button type="button" class="backbtn" id="backHome">&larr; Home</button>
+    <button type="button" class="backbtn starsbtn" id="toStars">&#9733; Stars Board</button>
+  </div>
+  <header>
+    <div>
+      <h1 class="sr-only">TMCFI Kaizen Board</h1>
+      <p class="sub">Monthly winners of the three Kaizen awards. Pick a month to see who took each one.</p>
+    </div>
+  </header>
+
+  <div class="pickers">
+    <div class="yearpick">
+      <button id="yPrev" type="button" aria-label="Previous year">&lsaquo;</button>
+      <select id="yearSel" aria-label="Year"></select>
+      <button id="yNext" type="button" aria-label="Next year">&rsaquo;</button>
+    </div>
+    <nav aria-label="Month" class="months" id="months"></nav>
+  </div>
+
+  <section aria-live="polite">
+    <h2 id="monthTitle"></h2>
+    <div id="cards" class="cards"></div>
+    <h2 class="oh" id="certTitle">Certificates</h2>
+    <div id="certs" class="certs"></div>
+    <h2 class="oh" id="othersTitle"></h2>
+    <ul id="others" class="others"></ul>
+  </section>
+
+  <section>
+    <h2>Full Year</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Month</th><th class="best">Best Kaizen</th><th class="most">Most Kaizen</th><th class="first">First Kaizen</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+
+  <div id="starsView" class="view" hidden>
+    <div class="navrow">
+      <button type="button" class="backbtn" id="starsHome">&larr; Home</button>
+      <button type="button" class="backbtn" id="starsToBoard">Kaizen Board</button>
+    </div>
+    <header>
+      <div>
+        <h1 class="sr-only">TMCFI Stars Board</h1>
+        <h2 id="starsTitle" style="margin:0">Stars Board</h2>
+        <p class="sub">Everyone who took part in a Kaizen earns a star for each one, grouped by department. Pick a name to see their Kaizens.</p>
+      </div>
+    </header>
+    <div class="starfilter">
+      <label for="starMonth">Show</label>
+      <select id="starMonth"></select>
+      <p class="starsum" id="starSum" aria-live="polite"></p>
+    </div>
+    <div class="depts" id="depts"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pName">
+    <button class="close" id="closeBtn" type="button" aria-label="Close">&times;</button>
+    <div id="panelBody"></div>
+  </div>
+</div>
+
+<script>
+/* ===== DATA: edit the winners here. One entry per month (1 = January). Leave a month out until results are in. =====
+   best  : name, dept, title (the Kaizen idea), saving (result, e.g. "6 min per unit")
+   most  : name, dept, count (number of Kaizens submitted that month)
+   first : name, dept, title, date (day the first Kaizen was submitted)                                              */
+var DATA_2026 = {
+  10: { best: { name: "Chique Rose Panlican", dept: "Pharmacy",       title: "Labeled storage boxes for oropharyngeal airways by size", saving: "Easy to spot and reach" },
+        most: { name: "Jeneth D. Reyes",      dept: "Pharmacy",       count: 2 },
+        first:{ name: "Lanie Nuqui",          dept: "Administrative", title: "Labeled in-patient list for billing checks", date: "Oct 1" } },
+  /* November: Best Kaizen is not announced yet (left out). Most Kaizen is a tie, so it is a list of two winners. */
+  11: { most: [ { name: "Chique Rose Panlican", dept: "Pharmacy", count: 3 },
+                { name: "Riza Garcia",          dept: "Nursing",  count: 3 } ],
+        first:{ name: "Chique Rose Panlican", dept: "Pharmacy", title: "Foley catheters sorted and labeled by size and color", date: "Nov 4" } }
+};
+/* Every Kaizen submitted, one row each: [month, name, department, Kaizen title, problem, what was changed, result, date submitted, picture (optional), report details (optional)].
+   The picture is the path of the Kaizen sheet or photo published next to this page, for example "kaizen/oct-ben-inserts.jpg".
+   Picking a person's name on the page shows all of their rows. The winners' Kaizens belong here too. */
+var KAIZENS_2026 = [
+  [10, "Lanie Nuqui", "Administrative", "Labeled in-patient list for billing checks", "No label to check the PHIC portal and MGH.", "Labeled the in-patient list for MGH and for the member's employed or payment status.", "Easy and fast transaction for the billing officer for outright deduction (preparation of SOA).", "Oct 1", "kaizen/oct-01-lanie-nuqui.jpg", "Report No. 10-0001 \u00b7 Coach: Camille Z. Jose"],
+  [10, "Jeneth D. Reyes", "Pharmacy", "HMO form reuse as patient record envelopes and OPD medicine bags", "Used HMO forms were accumulated and left unused, resulting in paper waste.", "Used HMO forms were repurposed into patient record envelopes and OPD medicine bags.", "Reduced paper waste and supply costs through HMO form reuse.", "Oct 2", "kaizen/oct-02-jeneth-reyes.jpg", "Report No. 10-000002 \u00b7 Category: Cost Reduction"],
+  [10, "Samantha Salda\u00f1a", "Laboratory", "Alphabetical filing of laboratory results", "Laboratory results were stored without alphabetical arrangement, making the files disorganized and difficult to locate.", "Laboratory results were arranged alphabetically according to patients' surnames and organized in their designated sections.", "Improved filing organization, faster retrieval of laboratory results and a more efficient workflow.", "Oct 5", "kaizen/oct-05-samantha-saldana.jpg", "Report No. 10-0003 \u00b7 Coach: Imelda Manusig \u00b7 Category: Quality Improvement, 5S"],
+  [10, "Melinda Perez", "Administrative", "Chart folders sorted by health record number", "Disorganized documents and unsorted charts.", "Sorted the folders, placed them in a standardized place and arranged them in order by the HRN (Health Record Number) written on each folder.", "Makes the most of the available desk space. Documents are neatly organized on shelves, with systematic filing, better traceability and faster retrieval.", "Oct 6", "kaizen/oct-06-melinda-perez.jpg", "Report No. 10-0005 \u00b7 Coach: Lanie Nuqui \u00b7 Category: Safety"],
+  [10, "Eduardo Imperial", "Security and I.W.", "Separate labeled fields in the personnel logbook", "Unorganized logging of personnel coming in and out of the facility.", "Labeled separately the information needed to write on.", "To make the search faster and easier.", "Oct 8", "kaizen/oct-08-lee-imperial.jpg", "Report No. 10-0006 \u00b7 Coach: Imelda Manusig \u00b7 Category: Faster Processing"],
+  [10, "Krizia Go", "Radiology", "Labeled and organized document files", "Disorganized documents with no label.", "Organized the documents and added labels.", "Faster to find documents.", "Oct 9", "kaizen/oct-09-krizia-go.jpg", "Report No. 10-0007 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Rosemary Jane Santos", "Hemodialysis", "Whiteboard for pre-HD weight registration", "Slow registration of the patient's pre-HD weight.", "Used a whiteboard for registration of pre-HD weight and records.", "Faster patient registration of documents, improving the quality of health care.", "Oct 9", "kaizen/oct-09-rosemary-santos.jpg", "Report No. 10-0004 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Jeanelle So", "Laboratory", "Second tourniquet for hard-to-palpate veins", "Veins are hard to palpate in certain patients.", "Placed a second tourniquet, which makes the veins slightly more visible and prominent.", "Improves first-stick success and may lessen the need for probing during venipuncture.", "Oct 10", "kaizen/oct-10-jeanelle-so.jpg", "Report No. 10-0008 \u00b7 Coach: Imelda Manusig \u00b7 Category: Faster Processing"],
+  [10, "Marla Imelda Balamban", "Administrative", "Complete and verified claim documents", "Date fields were not completed, verification details were missing and supporting documents and attachments were lacking.", "Signature and date are fully accomplished and verified, together with the required supporting documents.", "Fully filled out, with official stamp (CTC) and signatures, ready for processing claims.", "Oct 10", "kaizen/oct-10-marla-balamban.jpg", "Report No. 10-00010 \u00b7 Coach: Lanie Nuqui"],
+  [10, "Jeneth D. Reyes", "Pharmacy", "Oxygen masks sorted and labeled as Neonate, Pedia and Adult", "Oxygen masks were stored together in a large plastic bag without proper labeling, making them difficult to identify and retrieve.", "Sorted the masks into small boxes labeled Neonate, Pedia and Adult.", "Faster identification and retrieval of the correct oxygen mask, improving workflow efficiency and reducing delays in patient care.", "Oct 11", "kaizen/oct-11-jeneth-reyes.jpg", "Report No. 10-000012 \u00b7 Category: Faster Processing, 5S"],
+  [10, "Bianca Lugtu", "Laboratory", "Affordable laboratory test packages", "The laboratory offered individual tests at regular prices, with no available packages or discounts.", "Affordable laboratory test packages were introduced to help patients save money on commonly requested tests.", "Reduced testing costs and improved affordability and convenience for patients.", "Oct 11", "kaizen/oct-11-bianca-lugtu.jpg", "Report No. 10-00014 \u00b7 Coach: Imelda Manusig \u00b7 Category: Cost Reduction"],
+  [10, "Janette Sibal", "Administrative", "Documents sorted by attending physician", "Assorted documents for signing of attending physicians.", "Segregated and sorted the documents by attending physician.", "Easy to distribute to the doctors (attending physicians) for signing.", "Oct 13", "kaizen/oct-13-janette-sibal.jpg", "Report No. 10-00015 \u00b7 Coach: Lanie Nuqui"],
+  [10, "Cyra Magtoto", "Pharmacy", "Elevated and labeled syringe stock", "Syringe stocks were stored near floor level, requiring staff to bend down repeatedly and manually separate individual syringe components.", "Syringe stocks were elevated to an accessible level and properly labeled for easier identification, retrieval and inventory management.", "Improved accessibility, faster retrieval and better stock organization.", "Oct 13", "kaizen/oct-13-cyra-magtoto.jpg", "Report No. 10-00016 \u00b7 Category: Faster Processing, 5S, Safety"],
+  [10, "Chris Andrea Dela Cruz", "Hemodialysis", "Ready hemodialysis treatment sheets", "The patient's document form was not prepared.", "Patient documents are prepared ahead.", "Ready documents make our work easier.", "Oct 13", "kaizen/oct-13-chris-dela-cruz.jpg", "Report No. 10-00017 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Shaina C. Dayrit", "Pharmacy", "Divided drawer for medicines", "The medicines were all mixed up in the cabinet, making it time-consuming to find specific medications.", "Made dividers from old boxes and labeled each place for the medicines.", "It reduces the time spent dispensing medicines and made the inventory check easier.", "Oct 13", "kaizen/oct-13-shaina-dayrit.jpg", "Report No. 10-00018 \u00b7 Category: Quality Improvement, 5S"],
+  [10, "Jeyson K. Apidos", "Hemodialysis", "Pre-prepared catheter dressings", "A big gauze roll was used for wound dressing and dialysis catheter dressing.", "Catheter dressings are prepared ahead and stored in a designated clean area.", "More convenient, safer and cleaner, with less contamination.", "Oct 18", "kaizen/oct-18-jeyson-apidos.jpg", "Report No. 10-00019 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Joshua Tuazon", "Administrative", "Divided cabinet for HMO LOAs", "The HMO LOAs were previously kept in the cabinet.", "Fixed the cabinet and added dividers to keep the LOAs organized and separated according to their HMO.", "It is now easier to locate and retrieve HMO LOAs whenever they are needed.", "Oct 21", "kaizen/oct-21-joshua-tuazon.jpg", "Report No. 10-00022 \u00b7 Coach: Camille Jose"],
+  [10, "Clarence Jem L. David", "Laboratory", "Styrofoam inserts upcycled into a Belen house", "Styrofoam packaging inserts were loosely stacked and scattered across the storage shelves, taking up space and creating messy, disorganized storage.", "The inserts were upcycled and assembled into a house for the Belen as a Christmas decoration.", "Cleared the loose clutter from the shelves, freed up storage space and turned waste material into a practical, creative asset for seasonal decorating.", "Oct 21", "kaizen/oct-21-clarence-david.jpg", "Report No. 10-00021 \u00b7 Coach: Imelda Manusig \u00b7 Category: Cost Reduction"],
+  [10, "Zannah V. Prado", "Pharmacy", "Drawer for fast-moving medications", "Fast-moving medications were kept at the back of the pharmacy.", "Moved them into an easy-to-reach drawer with accurate labels.", "Reduces the dispensing time, especially during emergencies.", "Oct 22", "kaizen/oct-22-zannah-prado.jpg", "Report No. 10-00023 \u00b7 Category: Faster Processing, 5S"],
+  [10, "John Louie Bundalian", "Hemodialysis", "Safety chain for oxygen tank", "Oxygen tank without a safety chain.", "Oxygen tank secured with a safety chain.", "For safety and to keep it from falling.", "Oct 22", "kaizen/oct-22-john-bundalian.jpg", "Report No. 10-00024 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Camille Jose", "Administrative", "New document storage rack", "This was the only cabinet used to store documents such as HMO Letters of Authorization (LOAs), consent forms and other documents.", "Now uses a rack to store the documents.", "The new arrangement looks more organized and presentable, making it faster and easier to locate and retrieve the documents we need.", "Oct 23", "kaizen/oct-23-camille-jose.jpg", "Report No. 10-00025 \u00b7 Coach: Camille Jose"],
+  [10, "Carlyn Medina", "Hemodialysis", "Advance preparation of heparin", "Misplaced syringes and delay in preparing heparin caused late patient hooking.", "Heparin is prepared in advance.", "It makes hooking of patients easier.", "Oct 23", "kaizen/oct-23-carlyn-medina.jpg", "Report No. 10-00026 \u00b7 Coach: Sir Kelvin S. Estavillo"],
+  [10, "Cilchar B. Rubio", "Administrative", "Color-coded labels by patient type", "No label for the transaction type if OPD or IPD, so the patient type was hard to identify.", "Added labels for the transaction: inpatient, OPD-transfer and OPD-expired.", "Patient type is easily identified through color coding: orange (inpatient), pink (OPD-transfer), yellow (OPD-expired).", "Oct 23", "kaizen/oct-23-cilchar-rubio.jpg", "Report No. 10-00027 \u00b7 Coach: Lanie Nuqui"],
+  [10, "Analiza Macasieb", "Administrative", "Files placed next to the printer", "All files are mixed up together, making it difficult to locate specific documents, and they easily get crumpled and disorganized.", "Files are properly placed next to the printer for better placement.", "Easy to locate specific documents and reduces the time spent searching for patient records.", "Oct 23", "kaizen/oct-23-analiza-macasieb.jpg", "Report No. 10-00023"],
+  [10, "Jan Junwel A. Catu", "Pharmacy", "Reused bond paper for medication requests", "The Biz box system increased paper consumption because medication requests were printed on new, clean bond paper.", "Used bond paper from the Administrative Department is cut in half and reused for printing medication requests.", "It reduces the consumption of new bond paper, which reduces cost and minimizes paper waste.", "Oct 24", "kaizen/oct-24-jan-catu.jpg", "Report No. 10-00028 \u00b7 Category: Cost Reduction"],
+  [10, "Chique Rose Panlican", "Pharmacy", "Labeled storage boxes for oropharyngeal airways by size", "The airways were placed in one box with a label, so it was very challenging to pick the right size.", "Made storage boxes from emptied Ambu bag kit boxes and labeled each with its size number.", "The airways are now conveniently located, accessible and easy to spot.", "Oct 25", "kaizen/oct-25-chique-panlican.jpg", "Report No. 10-00029 \u00b7 Category: Faster Processing, 5S"],
+  [10, "Khamiille Mae Tanglao", "Laboratory", "Charge slip paper waste made into a Christmas tree", "A cabinet shelf was full and untidy, with accumulated charge slip paper waste stored in syringe cardboard boxes.", "The charge slip paper was taken out, repurposed and crafted into a full-sized paper Christmas tree with layered green paper loop branches and a colorful paper garland.", "Recycled the paper waste into creative Christmas decor and completely freed up cabinet shelf space for essential laboratory supplies.", "Oct 28", "kaizen/oct-28-khamiille-tanglao.jpg", "Report No. 10-00034 \u00b7 Coach: Imelda Manusig \u00b7 Category: Cost Reduction"],
+  [10, "Miriam Sambile", "Cashier", "Papers sorted and set in order at the cashier desk", "Papers everywhere, overwhelming and chaotic.", "Papers are sorted and set in order.", "Less stress and faster work.", "Oct 29", "kaizen/oct-29-miriam-sambile.jpg", "Report No. 10-00035"],
+  [11, "Chique Rose Panlican", "Pharmacy", "Foley catheters sorted and labeled by size and color", "Foley catheters of different sizes were randomly stored in the cabinet without proper segregation, making identification and retrieval difficult.", "Foley catheters are now systematically arranged and segregated according to size and color, with appropriate labels for easier identification and retrieval.", "Reduced the risk of selecting the wrong catheter size through proper segregation and labeling, resulting in faster retrieval and improved workflow efficiency.", "Nov 4", "kaizen/nov-04-chique-panlican-1.jpg", "Report No. 11-00001 \u00b7 Category 5S"],
+  [11, "Chique Rose Panlican", "Pharmacy", "Organized and labeled medicines in the refrigerator", "The medicines inside the refrigerator were improperly arranged, with no systematic organization, making identification and retrieval difficult.", "Medicines were systematically organized and arranged according to their classification, with designated shelf labels for easier identification and retrieval.", "Improved medication identification and retrieval, reduced time spent searching for stocks, minimized the risk of misplaced items, and promoted proper storage and inventory management.", "Nov 4", "kaizen/nov-04-chique-panlican-2.jpg", "Report No. 11-00002 \u00b7 Category Quality Improvement, 5S"],
+  [11, "Chique Rose Panlican", "Pharmacy", "Labeled containers for expired, damaged and recalled medicines", "Expired medicines were placed in small, temporary containers without a designated and organized segregation area.", "Expired, damaged and recalled medicines are now segregated into designated, properly labeled containers to ensure proper identification and prevent accidental dispensing.", "Improved segregation and identification of expired, damaged and recalled medicines, reducing the risk of accidental dispensing, preventing stock mix-ups and promoting safer inventory management.", "Nov 4", "kaizen/nov-04-chique-panlican-3.jpg", "Report No. 11-00003 \u00b7 Category Quality Improvement, 5S"],
+  [11, "Zannah V. Prado", "Pharmacy", "OR sets prepared and organized in advance", "OR sets were being prepared right before the operations, adding to the daily workload and time-consuming preparation.", "OR sets are now individually prepared, organized and segregated in advance according to the required procedure, ensuring readiness before scheduled operations.", "Reduced preparation time and workload before scheduled operations, improved organization and accessibility of medicines and supplies, and promoted timely OR readiness.", "Nov 5", "kaizen/nov-05-zannah-prado.jpg", "Report No. 11-00004 \u00b7 Category Quality Improvement, 5S, Safety"],
+  [11, "Riza Garcia", "Nursing", "Duplicate insurance forms reused as scratch paper", "Duplicate insurance forms were discarded or left scattered around the workplace.", "Duplicate insurance forms are reused as scratch paper to reduce paper waste and support environmental sustainability.", "Reuse as scratch paper reduces paper waste and promotes better workplace organization.", "Nov 7", "kaizen/nov-07-riza-garcia-1.jpg", "Report No. 11-00005"],
+  [11, "Riza Garcia", "Nursing", "Labeled and organized forms at the workstation", "Unorganized and unlabeled forms at the workstation can cause delay and create an untidy appearance.", "Properly labeled and organized forms are maintained, allowing easy access and enhancing the overall appearance of the workstation.", "Maintaining, labeling and organizing forms improves accessibility and contributes to a neat, professional-looking workstation.", "Nov 7", "kaizen/nov-07-riza-garcia-2.jpg", "Report No. 11-00006"],
+  [11, "Maricel Canlas", "Nursing", "Medical supply boxes recycled into IV wrist splints", "The empty boxes of IV fluids, medicines and other medical supplies were disposed of in the garbage, together with used forms such as HMO forms.", "The boxes from medical supplies and used forms were recycled and converted into IV wrist splints for admitted patients.", "Recycling helps the environment by turning used materials into new products or items.", "Nov 7", "kaizen/nov-07-maricel-canlas.jpg", "Report No. 11-00007"],
+  [11, "Hazel Fronda", "Nursing", "Empty IV bottle reused as urine output container", "An empty IV bottle or container was usually discarded in the trash bin.", "An empty IV bottle or container was used to collect the patient's urine output.", "Reuse as a container for urine output reduces waste materials.", "Nov 7", "kaizen/nov-07-hazel-fronda.jpg", "Report No. 11-00008"],
+  [11, "Cyra Magtoto", "Pharmacy", "IV splints sorted into labeled containers", "IV splints and pharmacy supplies were scattered and not properly organized, making identification and retrieval difficult.", "Supplies were sorted and placed in designated, properly labeled containers for easier identification and access.", "Improved organization and cleanliness of the pharmacy, faster identification and retrieval of supplies, reduced clutter and improved workplace safety.", "Nov 9", "kaizen/nov-09-cyra-magtoto.jpg", "Report No. 11-00009 \u00b7 Category Quality Improvement, 5S, Safety"],
+  [11, "Shaina C. Dayrit", "Pharmacy", "Pharmacy documents filed in labeled folders", "Pharmacy documents were piled together and not properly organized, making retrieval difficult.", "Documents were sorted, filed and arranged in properly labeled folders for easy identification and retrieval.", "Improved document organization and accessibility, faster retrieval of important records, reduced risk of misplaced documents and a more organized workplace.", "Nov 10", "kaizen/nov-10-shaina-dayrit.jpg", "Report No. 11-000010 \u00b7 Category Quality Improvement, 5S"],
+  [11, "Joseph Rivera", "Security and I.W.", "Parked motorcycles relocated to clear the area", "Numerous motorcycles were parked in the area, causing congestion and making the surroundings look disorganized.", "Security personnel relocated the parked motorcycles, clearing the area and making the surroundings more organized.", "Improved cleanliness and orderliness of the area, a clearer and safer passage for pedestrians, less obstruction and easier monitoring by security personnel.", "Nov 11", "kaizen/nov-11-joseph-rivera.jpg", "Report No. 11-000011 \u00b7 Category 5S, Safety"],
+  [11, "Ryan Santos", "Security and I.W.", "Kaizen Board mounted in a designated area", "The Kaizen Board was not properly mounted and had no designated location, making it difficult to access and view.", "The Kaizen Board was properly mounted on the wall and placed in a designated, visible area.", "Made the Kaizen Board more accessible and visible, and promoted easier monitoring and updating of Kaizen activities.", "Nov 13", "kaizen/nov-13-ryan-santos.jpg", "Report No. 11-00012 \u00b7 Category 5S"],
+  [11, "Cilchar B. Rubio", "Administrative", "Files sorted into piles by medical specialization", "All files were mixed up together, making it difficult to locate specific documents; they easily got crumpled and disorganized.", "Files are systematically sorted into distinct piles according to medical specialization.", "Easy to locate specific documents and reduces the time spent searching for patient records.", "Nov 13", "kaizen/nov-13-cilchar-rubio.jpg", "Report No. 11-00013 \u00b7 Coach Lanie G. Nuqui \u00b7 Category Faster Processing"],,
+  [11, "Janette Sibal", "Administrative", "Color-coded labels for archived dialysis records", "Disorganized records, mixed together with no sequence order by month and year.", "Printed color-coded labels (blue-2024, green-2025, red-2026) on the record boxes.", "No more sifting through unsorted files or guessing where documents from a certain year are; quick find-and-retrieve and less misplacement.", "Nov 13", "kaizen/nov-13-janette-sibal.jpg", "Report No. 11-00014 \u00b7 Coach Lanie G. Nuqui \u00b7 Category Faster Processing, Cost Reduction"],
+  [11, "Marla Imelda Balamban", "Administrative", "Archive boxes arranged on shelves by year and month", "Unsorted papers filed in crumpled and overstuffed boxes on the floor were exposed to dust and damage.", "All archives are housed in standard boxes arranged by year and sorted month to month, easy to identify.", "Stacking the boxes on sturdy, multi-tier metal shelving off the floor protects the files, creates a neat workflow and reduces the risk of water damage.", "Nov 13", "kaizen/nov-13-marla-balamban.jpg", "Report No. 11-00015 \u00b7 Coach Lanie G. Nuqui \u00b7 Category Faster Processing, Cost Reduction"],
+  [11, "Clarence Jem L. David", "Laboratory", "Labeled drawers and cabinets for laboratory supplies", "Drawers and cabinets were not properly labeled, and laboratory staff had difficulty finding supplies, materials and equipment, spending more time searching.", "All drawers and cabinets were provided with clear and visible labels. Supplies and materials were arranged according to their designated storage areas.", "Improved laboratory organization and cleanliness, less time spent searching for supplies and materials, and a faster, more efficient workflow.", "Nov 19", "kaizen/nov-19-clarence-david.jpg", "Report No. 11-00016 \u00b7 Coach Imelda Manusig \u00b7 Category 5S"],
+  [11, "Mariel Sabuco", "Laboratory", "FIFO arrangement of laboratory reagents and supplies", "Reagents and supplies were not organized by date of receipt. Newly received stocks were often placed ahead of older stocks, increasing the risk of expiration.", "The First In, First Out (FIFO) system was implemented in the storage area. Older stocks were moved to the front for priority use and new stocks were placed behind existing ones.", "Improved inventory monitoring and stock management reduced the risk of expired reagents and supplies and minimized unnecessary replacement costs.", "Nov 19", "kaizen/nov-19-mariel-sabuco.jpg", "Report No. 11-00017 \u00b7 Coach Imelda Manusig \u00b7 Category 5S"],
+  [11, "Angelika Policarpio", "Laboratory", "Inventory sheet for laboratory supplies and reagents", "No inventory sheet was used to monitor laboratory supplies and reagents, making it difficult to know the remaining quantity and which items needed immediate replenishment.", "A laboratory inventory sheet was created and implemented. All supplies, reagents and materials were properly listed and recorded.", "Reduced risk of unexpected shortages and easy identification of available and remaining stocks.", "Nov 19", "kaizen/nov-19-angelika-policarpio.jpg", "Report No. 11-00018 \u00b7 Coach Imelda Manusig \u00b7 Category 5S"],
+  [11, "Samantha Salda\u00f1a", "Laboratory", "Pending specimen list for patient monitoring", "Laboratory personnel had difficulty identifying patients who had not yet submitted their specimens.", "Patients with pending specimens were properly listed and monitored.", "Promoted a more organized and systematic specimen monitoring process.", "Nov 19", "kaizen/nov-19-samantha-saldana.jpg", "Report No. 11-00019 \u00b7 Coach Imelda Manusig \u00b7 Category Faster Processing, 5S"],
+  [11, "Khamiille Mae Tanglao", "Laboratory", "Shift endorsement board for the laboratory", "Shift endorsements were mainly communicated verbally or recorded in the logbook, so important reminders and pending activities were not immediately visible to the incoming shift.", "The Laboratory Shift Endorsement Board was introduced as an additional communication tool, supplementing the existing logbook.", "Pending tasks and unresolved concerns are readily visible on the board, improving visibility and accountability for follow-up actions.", "Nov 20", "kaizen/nov-20-khamiille-tanglao.jpg", "Report No. 11-00020 \u00b7 Coach Imelda Manusig \u00b7 Category Quality Improvement"],
+  [11, "Bianca Lugtu", "Laboratory", "Designated tray for pending laboratory requests", "Pending laboratory requests were left scattered on the tabletop without a designated tray, increasing the risk of misplaced requests and reprinting.", "A designated tray was provided to keep pending laboratory requests organized, secured and easily accessible.", "Improved organization and accessibility of pending requests while minimizing the risk of misplaced documents and unnecessary reprinting.", "Nov 20", "kaizen/nov-20-bianca-lugtu.jpg", "Report No. 11-00021 \u00b7 Coach Imelda Manusig \u00b7 Category Quality Improvement"],
+  [11, "Joyce Miclat", "Nursing", "Bucket and warning sign for AC water drip in the emergency room", "Water was dripping from the air conditioner of the emergency room.", "Placed a bucket (temporary action while waiting for maintenance) to catch the water, with a warning sign, to prevent the floor from soaking.", "No harm was done to patients, patients' relatives and other hospital personnel.", "Nov 20", "kaizen/nov-20-joyce-miclat.jpg", "Report No. 11-00022 \u00b7 Coach Joyce \u00b7 Category Safety"],
+  [11, "Gaile Arboleda", "Nursing", "Safety chain for oxygen tank", "The oxygen tank had no safety features that may cause harm to the patient, significant others and health care workers.", "Secured the oxygen tank with a safety chain.", "Prevents accidental falling or tipping, reducing the risk of injury to patients, visitors and healthcare workers.", "Nov 20", "kaizen/nov-20-gaile-arboleda.jpg", "Report No. 11-00024 \u00b7 Category Safety"],
+  [11, "Riza Garcia", "Nursing", "Standard labeled containers for sharps waste", "The containers used did not meet sharps container standards and may be hazardous to people and the environment.", "Safe handling, correct segregation and timely disposal with proper containers and labels.", "Right waste in the right container or bin can save lives.", "Nov 21", "kaizen/nov-21-riza-garcia-3.jpg", "Report No. 11-00023"],
+  [11, "Jan Junwel A. Catu", "Pharmacy", "Gauze packs bundled by 10", "Gauze packs were given individually. Manual counting takes time, which is critical during an emergency.", "Gauze packs are bundled by 10 to minimize time and effort on counting, especially in emergency cases.", "Giving gauze packs in bundles is more practical because it saves time, improves organization and makes wound-care procedures more efficient.", "Nov 21", "kaizen/nov-21-jan-catu.jpg", "Report No. not written on the sheet \u00b7 Category Faster Processing"],
+  [11, "Jeneth D. Reyes", "Pharmacy", "Supplier invoices filed in a labeled folder", "The invoices from suppliers were just stacked up.", "Placed the invoices into a folder with separate compartments, labeled with the corresponding suppliers.", "Improves invoice organization, makes supplier documents easier to locate and reduces the risk of misplaced invoices.", "Nov 21", "kaizen/nov-21-jeneth-reyes.jpg", "Report No. 11-00026 \u00b7 Category 5S"],
+  [11, "Miriam Sambile", "Cashier", "Return cash moved to the reimbursement column", "Return cash was showing in the disbursement's column, but it shouldn't be there.", "The return cash now appears in the reimbursement column.", "The first format was confusing because it didn't specify it was return cash; it was just under the disbursement column. Now the formula and format have been fixed, and return cash is properly shown on the report.", "Nov 24", "kaizen/nov-24-miriam-sambile.jpg", "Report No. 11-00026 \u00b7 Category 5S"]
+];
+/* Company logo and winner photos. Publish the image files next to this page and put their paths here.
+   Without a photo, the person's initials are shown instead. */
+var COMPANY = "Tiglao Medical Center Foundation, Inc.";
+var LOGO_SRC = "logo.jpg";
+
+/* One entry per year. For a new year, copy the DATA and KAIZENS blocks above, rename them (for example DATA_2027 and KAIZENS_2027),
+   and add a line here. The year picker also adds each new calendar year by itself, so it is ready before any winners are entered. */
+var YEARS = { 2026: { data: DATA_2026, kaizens: KAIZENS_2026 } };
+var YEAR = new Date().getFullYear();
+var DATA = {}, KAIZENS = [];
+var START = { y: 2026, m: 10 };   /* the Kaizen Board program began in October 2026 */
+
+/* Home page: the Kaizen coordinators. Leave a name empty to show "Name to be added". */
+var COORDINATORS = [
+  { name: "Yana B. Bangisan, RPh", role: "Kaizen Program Chair", dept: "", photo: "photos/yana-bangisan.jpg" },
+  { name: "Sherlyn Joanne Manadao", role: "Kaizen Coordinator", dept: "", photo: "photos/sherlyn-manadao.jpg" },
+  { name: "Joyce Anne Miclat, RN", role: "Kaizen Coach 1", dept: "Nursing and Pharmacy Division", photo: "" },
+  { name: "Kelvin S. Estavillo, RN", role: "Kaizen Coach 2", dept: "Hemodialysis and Medical Imaging Division", photo: "" },
+  { name: "Imelda D. Manusig, RMT", role: "Kaizen Coach 3", dept: "Laboratory and Security Section (General Services) Division", photo: "" },
+  { name: "Camille Z. Jose", role: "Kaizen Coach 4", dept: "Administrative and IW Section, Kitchen and Laundry Service, Maintenance Service (General Services) Division", photo: "ids/camille-jose.jpg" }
+];
+var PHOTOS = {   /* ID picture shown on profiles and winner cards */
+  "Allan David": "ids/allan-david.jpg",
+  "Chris Andrea Dela Cruz": "ids/andrea-dela-cruz.jpg",
+  "Angelika Policarpio": "ids/angelika-policarpio.jpg",
+  "Avel Parial": "ids/avel-parial.jpg",
+  "Bianca Lugtu": "ids/bianca-lugtu.jpg",
+  "Carlo Esguerra": "ids/carlo-esguerra.jpg",
+  "Carlyn Medina": "ids/carlyn-medina.jpg",
+  "Chique Rose Panlican": "ids/chique-panlican.jpg",
+  "Clarence Jem L. David": "ids/clarence-david.jpg",
+  "Cyra Magtoto": "ids/cyra-magtoto.jpg",
+  "Jan Junwel A. Catu": "ids/jan-catu.jpg",
+  "Janette Sibal": "ids/janette-sibal.jpg",
+  "Jeyson K. Apidos": "ids/jeyson-apidos.jpg",
+  "John Louie Bundalian": "ids/john-bundalian.jpg",
+  "Khamiille Mae Tanglao": "ids/khamiille-tanglao.jpg",
+  "Krizia Go": "ids/krizia-go.jpg",
+  "Miriam Sambile": "ids/miriam-sambile.jpg",
+  "Rosemary Jane Santos": "ids/rosemary-santos.jpg",
+  "Samantha Salda\u00f1a": "ids/samantha-saldana.jpg",
+  "Teresita Escaberte": "ids/teresita-escaberte.jpg",
+  "Analiza Macasieb": "ids/analiza-macasieb.jpg",
+  "Camille Jose": "ids/camille-jose.jpg",
+  "Cilchar B. Rubio": "ids/cilchar-rubio.jpg",
+  "Joshua Tuazon": "ids/joshua-tuazon.jpg",
+  "Lanie Nuqui": "ids/lanie-nuqui.jpg",
+  "Marla Imelda Balamban": "ids/marla-balamban.jpg",
+  "Melinda Perez": "ids/melinda-perez.jpg"
+};
+var IDS = {      /* same ID pictures */
+  "Allan David": "ids/allan-david.jpg",
+  "Chris Andrea Dela Cruz": "ids/andrea-dela-cruz.jpg",
+  "Angelika Policarpio": "ids/angelika-policarpio.jpg",
+  "Avel Parial": "ids/avel-parial.jpg",
+  "Bianca Lugtu": "ids/bianca-lugtu.jpg",
+  "Carlo Esguerra": "ids/carlo-esguerra.jpg",
+  "Carlyn Medina": "ids/carlyn-medina.jpg",
+  "Chique Rose Panlican": "ids/chique-panlican.jpg",
+  "Clarence Jem L. David": "ids/clarence-david.jpg",
+  "Cyra Magtoto": "ids/cyra-magtoto.jpg",
+  "Jan Junwel A. Catu": "ids/jan-catu.jpg",
+  "Janette Sibal": "ids/janette-sibal.jpg",
+  "Jeyson K. Apidos": "ids/jeyson-apidos.jpg",
+  "John Louie Bundalian": "ids/john-bundalian.jpg",
+  "Khamiille Mae Tanglao": "ids/khamiille-tanglao.jpg",
+  "Krizia Go": "ids/krizia-go.jpg",
+  "Miriam Sambile": "ids/miriam-sambile.jpg",
+  "Rosemary Jane Santos": "ids/rosemary-santos.jpg",
+  "Samantha Salda\u00f1a": "ids/samantha-saldana.jpg",
+  "Teresita Escaberte": "ids/teresita-escaberte.jpg",
+  "Analiza Macasieb": "ids/analiza-macasieb.jpg",
+  "Camille Jose": "ids/camille-jose.jpg",
+  "Cilchar B. Rubio": "ids/cilchar-rubio.jpg",
+  "Joshua Tuazon": "ids/joshua-tuazon.jpg",
+  "Lanie Nuqui": "ids/lanie-nuqui.jpg",
+  "Marla Imelda Balamban": "ids/marla-balamban.jpg",
+  "Melinda Perez": "ids/melinda-perez.jpg"
+};
+/* Stars Board roster (optional): every employee by department. Anyone listed here with no Kaizen shows an empty star.
+   Leave it empty and the Stars Board lists only the people who have submitted a Kaizen.
+   e.g. { "Pharmacy": ["Chique Rose Panlican", "Another Name"], "Laboratory": ["Name"] } */
+var ROSTER = {
+  "Cashier": ["Teresita Escaberte", "Marianne Carbungco"],
+  "Hemodialysis": ["Carlo Esguerra"],
+  "Nursing": ["Rizzamay Victoria", "Rcel Sebastian", "Loreta Poblacio", "Omari Payang", "Charli Nacional", "Marc Manansala", "Alyssa Ferareza", "Realyn Dela Cruz", "Diana Dagsaan", "Krizia Castro", "John Paul Castaneda", "Pamela Caligagan"],
+  "Laboratory": ["Angelika Policarpio"],
+  "Security and I.W.": ["Ryan Santos", "Oliver San Jose", "Gherald Roque", "Arvin Pangilinan", "Edward Aseo", "Ricardo Sagun", "Nathaniel Cunanan", "Ramil Gacillos", "Joseph Rivera", "Ronnie Boy Simbul", "Arnold Abalos", "Resty Soliman", "Arjay Arsiga"],
+  "Radiology": ["Allan David", "Avel Parial"]
+};
+/* ===== end of DATA ===== */
+
+var NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+var HASHES = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+var selected = 11;
+
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+/* The winners of one award in one month, as a list: one winner is an object, a tie is a list of objects, no result yet is empty or left out. */
+function W(m, kind) {
+  var d = DATA[m]; if (!d || !d[kind]) return [];
+  return Array.isArray(d[kind]) ? d[kind] : [d[kind]];
+}
+var AWARD = { best: "Best Kaizen", most: "Most Kaizen", first: "First Kaizen" };
+var lastFocus = null;
+
+function findKaizen(m, name, title) {
+  for (var i = 0; i < KAIZENS.length; i++) {
+    var z = KAIZENS[i];
+    if (z.m === m && z.name === name && z.title === title) return z;
+  }
+  return null;
+}
+
+function openImage(src, alt, backName) {
+  var overlay = document.getElementById("overlay");
+  var panel = document.querySelector(".panel");
+  if (overlay.hidden) lastFocus = document.activeElement;
+  panel.classList.add("wide");
+  var lab = / ID$/.test(alt) ? "" : "Kaizen picture: ";
+  panel.setAttribute("aria-label", lab + alt);
+  var body = document.getElementById("panelBody");
+  body.textContent = "";
+  if (backName) {
+    var back = el("button", "seebtn", "\u2190 Back to " + backName);
+    back.type = "button";
+    back.style.marginBottom = "12px";
+    back.addEventListener("click", function () { openPerson(backName); });
+    body.appendChild(back);
+  }
+  body.appendChild(el("h2", null, alt));
+  var i = document.createElement("img");
+  i.src = src; i.alt = lab + alt;
+  i.style.cssText = "display:block;width:100%;height:auto;margin-top:12px;border:1px solid var(--line)";
+  body.appendChild(i);
+  overlay.hidden = false;
+  document.getElementById("closeBtn").focus();
+}
+
+function initials(n) { return n.split(" ").map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase(); }
+
+function avatar(name, size) {
+  var w = el("div", "avatar" + (size ? " " + size : ""));
+  if (PHOTOS[name]) {
+    w.classList.add("has-photo");
+    var i = document.createElement("img");
+    i.src = PHOTOS[name]; i.alt = "Photo of " + name;
+    w.classList.add("full");
+    w.appendChild(i);
+  } else {
+    w.textContent = initials(name);
+    w.setAttribute("aria-hidden", "true");
+  }
+  return w;
+}
+
+function personLink(name) {
+  var b = el("button", "plink", name);
+  b.type = "button";
+  b.title = "See " + name + "'s Kaizen";
+  b.addEventListener("click", function () { openPerson(name); });
+  return b;
+}
+
+function profile(name) {
+  var p = { dept: "", awards: [], kaizens: [] };
+  for (var m = 1; m <= 12; m++) {
+    var d = DATA[m];
+    if (!d) continue;
+    ["best", "most", "first"].forEach(function (k) {
+      W(m, k).forEach(function (w) { if (w.name === name) { p.dept = w.dept; p.awards.push({ m: m, k: k, count: k === "most" ? w.count : 0, w: w }); } });
+    });
+  }
+  KAIZENS.forEach(function (z) {
+    if (z.name !== name) return;
+    p.dept = z.dept;
+    var tag = "Submitted";
+    if (W(z.m, "best").some(function (w) { return w.name === name && w.title === z.title; })) tag = "Best Kaizen";
+    else if (W(z.m, "first").some(function (w) { return w.name === name && w.title === z.title; })) tag = "First Kaizen";
+    p.kaizens.push({ m: z.m, tag: tag, title: z.title, problem: z.problem, change: z.change, result: z.result, date: z.date, image: z.image, extra: z.extra });
+  });
+  p.kaizens.sort(function (a, b) { return a.m - b.m; });
+  return p;
+}
+
+function openPerson(name) {
+  var p = profile(name);
+  document.querySelector(".panel").classList.remove("wide");
+  var body = document.getElementById("panelBody");
+  body.textContent = "";
+  if (document.getElementById("overlay").hidden) lastFocus = document.activeElement;
+
+  var who = el("div", "who");
+  who.appendChild(avatar(name, "lg"));
+  var tx = el("div");
+  var h = el("h2", null, name); h.id = "pName";
+  tx.appendChild(h);
+  tx.appendChild(el("div", "dept", p.dept));
+  who.appendChild(tx);
+  body.appendChild(who);
+
+  body.appendChild(el("h4", "ph", "Awards"));
+  if (p.awards.length) {
+    var ul = el("ul", "chips");
+    p.awards.forEach(function (a) {
+      var t = AWARD[a.k] + " · " + NAMES[a.m - 1].slice(0, 3) + " " + YEAR + (a.count ? " (" + a.count + " Kaizens)" : "");
+      var li = el("li", "chip " + a.k);
+      var cb = el("button", "plink", t);
+      cb.type = "button"; cb.title = "View certificate";
+      cb.addEventListener("click", function () { openCertificate(a.k, a.m, a.w); });
+      li.appendChild(cb);
+      ul.appendChild(li);
+    });
+    body.appendChild(ul);
+  } else {
+    body.appendChild(el("p", "muted", "No awards yet. Thank you for taking part."));
+  }
+
+  body.appendChild(el("h4", "ph", "Kaizens (" + p.kaizens.length + ")"));
+  if (!p.kaizens.length) body.appendChild(el("p", "muted", "No Kaizen on record for " + YEAR + "."));
+  p.kaizens.forEach(function (k) {
+    var row = el("div", "kz");
+    row.appendChild(el("div", "meta", NAMES[k.m - 1] + " " + YEAR + " · " + k.tag + " · " + k.date));
+    row.appendChild(el("div", "ttl", k.title));
+    [["Problem", k.problem], ["What changed", k.change], ["Result", k.result], ["Report", k.extra]].forEach(function (f) {
+      if (!f[1]) return;
+      var line = el("div", "note");
+      line.appendChild(el("b", null, f[0] + ": "));
+      line.appendChild(document.createTextNode(f[1]));
+      row.appendChild(line);
+    });
+    if (k.image) {
+      var ib = el("button", "kimgbtn");
+      ib.type = "button"; ib.title = "Enlarge picture";
+      var im = document.createElement("img"); im.src = k.image; im.alt = "Kaizen picture: " + k.title;
+      ib.appendChild(im);
+      ib.addEventListener("click", function () { openImage(k.image, k.title, name); });
+      row.appendChild(ib);
+    } else {
+      row.appendChild(el("div", "kph", "Kaizen picture not added yet"));
+    }
+    body.appendChild(row);
+  });
+
+  document.getElementById("overlay").hidden = false;
+  document.getElementById("closeBtn").focus();
+}
+
+function certEl(kind, m, d) {
+  var when = NAMES[m - 1] + " " + YEAR;
+  var reason, extra;
+  if (kind === "best") { reason = "for the outstanding Kaizen “" + d.title + "”"; extra = "Result: " + d.saving; }
+  else if (kind === "most") { reason = "for submitting the most Kaizens in " + when; extra = d.count + (d.count === 1 ? " Kaizen submitted" : " Kaizens submitted"); }
+  else { reason = "for submitting the first Kaizen of " + when; extra = "“" + d.title + "”, submitted " + d.date; }
+
+  var c = el("div", "cert " + kind);
+  if (LOGO_SRC) { var img = document.createElement("img"); img.src = LOGO_SRC; img.alt = ""; img.className = "clogo"; c.appendChild(img); }
+  c.appendChild(el("div", "c-org", COMPANY));
+  c.appendChild(el("div", "c-head", "Certificate of Recognition"));
+  c.appendChild(el("div", "c-award", AWARD[kind]));
+  c.appendChild(el("div", "c-pre", "Proudly presented to"));
+  c.appendChild(el("div", "c-name", d.name));
+  c.appendChild(el("div", "c-dept", d.dept));
+  c.appendChild(el("div", "c-for", reason));
+  c.appendChild(el("div", "c-res", extra));
+  var foot = el("div", "c-foot");
+  foot.appendChild(el("div", "c-date", when));
+  c.appendChild(foot);
+  return c;
+}
+
+function certBox(kind, m, big, d) {
+  var box = el("div", "certbox");
+  if (!big) {
+    box.tabIndex = 0;
+    box.setAttribute("role", "button");
+    box.setAttribute("aria-label", "Enlarge " + AWARD[kind] + " certificate for " + d.name);
+    box.addEventListener("click", function () { openCertificate(kind, m, d); });
+    box.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCertificate(kind, m, d); } });
+  }
+  box.appendChild(certEl(kind, m, d));
+  return box;
+}
+
+function openCertificate(kind, m, d) {
+  var overlay = document.getElementById("overlay");
+  var panel = document.querySelector(".panel");
+  if (overlay.hidden) lastFocus = document.activeElement;
+  panel.classList.add("wide");
+  panel.setAttribute("aria-label", AWARD[kind] + " certificate");
+  var body = document.getElementById("panelBody");
+  body.textContent = "";
+  body.appendChild(certBox(kind, m, true, d));
+  overlay.hidden = false;
+  document.getElementById("closeBtn").focus();
+}
+
+function closePerson() {
+  document.getElementById("overlay").hidden = true;
+  if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+}
+
+function renderBrand() {
+  var b = document.getElementById("brand");
+  b.textContent = "";
+  if (LOGO_SRC) {
+    var i = document.createElement("img");
+    i.src = LOGO_SRC; i.alt = COMPANY + " logo";
+    b.appendChild(i);
+  } else {
+    b.appendChild(el("span", "ph", COMPANY + " logo"));
+  }
+}
+
+function fromHash() {
+  var h = (location.hash || "").replace("#", ""), y = null;
+  var parts = h.split("-");
+  if (parts.length === 2) { y = parseInt(parts[0], 10); h = parts[1]; }
+  var i = HASHES.indexOf(h);
+  return i >= 0 ? { y: y, m: i + 1 } : null;
+}
+
+function beforeStart(m) { return YEAR < START.y || (YEAR === START.y && m < START.m); }
+
+function updateHash() {
+  try { history.replaceState(null, "", "#" + YEAR + "-" + HASHES[selected - 1]); } catch (e) {}
+}
+
+function yearList() {
+  var ks = Object.keys(YEARS).map(Number);
+  var lo = Math.min.apply(null, ks);
+  var hi = Math.max(new Date().getFullYear(), Math.max.apply(null, ks));
+  var out = [];
+  for (var y = lo; y <= hi; y++) out.push(y);
+  return out;
+}
+
+function setYear(y, m) {
+  YEAR = y;
+  var Y = YEARS[y] || {};
+  DATA = Y.data || {};
+  KAIZENS = (Y.kaizens || []).map(function (a) { return { m: a[0], name: a[1], dept: a[2], title: a[3], problem: a[4], change: a[5], result: a[6], date: a[7], image: a[8] || "", extra: a[9] || "" }; });
+  if (!m) {
+    var now = new Date();
+    if (y === now.getFullYear()) { m = now.getMonth() + 1; for (var j = m; j >= 1; j--) { if (DATA[j]) { m = j; break; } } }
+    else { m = (y === START.y) ? START.m : 1; for (var i = 12; i >= 1; i--) { if (DATA[i]) { m = i; break; } } }
+  }
+  selected = m;
+  render();
+}
+
+function renderYear() {
+  var sel = document.getElementById("yearSel");
+  var yl = yearList();
+  sel.textContent = "";
+  yl.forEach(function (y) {
+    var o = el("option", null, String(y)); o.value = String(y);
+    if (y === YEAR) o.selected = true;
+    sel.appendChild(o);
+  });
+  document.getElementById("yPrev").disabled = YEAR <= yl[0];
+  document.getElementById("yNext").disabled = YEAR >= yl[yl.length - 1];
+}
+
+function select(m, fromUser) {
+  selected = m;
+  if (fromUser) updateHash();
+  render();
+}
+
+function card(kind, label, d, nameLine, deptLine, what, statBig, statSmall) {
+  var c = el("article", "card " + kind);
+  var tag = el("div", "tag"); tag.appendChild(el("span", "dot")); tag.appendChild(document.createTextNode(label));
+  var body = el("div", "body");
+  var who = el("div", "who");
+  who.appendChild(avatar(nameLine));
+  var wt = el("div");
+  var h3 = el("h3", "name"); h3.appendChild(personLink(nameLine));
+  wt.appendChild(h3);
+  wt.appendChild(el("div", "dept", deptLine));
+  who.appendChild(wt);
+  body.appendChild(who);
+  if (what) body.appendChild(el("p", "what", what));
+  var stat = el("div", "stat"); stat.appendChild(el("b", null, statBig)); stat.appendChild(el("span", null, statSmall));
+  body.appendChild(stat);
+  c.appendChild(tag); c.appendChild(body);
+  return c;
+}
+
+function render() {
+  renderYear();
+  var months = document.getElementById("months");
+  months.textContent = "";
+  for (var m = 1; m <= 12; m++) {
+    (function (m) {
+      var b = el("button", DATA[m] ? "" : "empty", NAMES[m - 1].slice(0, 3));
+      b.type = "button";
+      if (beforeStart(m)) { b.disabled = true; b.title = "Before the program started"; }
+      b.setAttribute("aria-pressed", m === selected ? "true" : "false");
+      b.setAttribute("aria-label", NAMES[m - 1]);
+      b.addEventListener("click", function () { select(m, true); });
+      months.appendChild(b);
+    })(m);
+  }
+
+  document.getElementById("monthTitle").textContent = NAMES[selected - 1] + " " + YEAR;
+  var cards = document.getElementById("cards");
+  cards.textContent = "";
+  var d = DATA[selected];
+  if (!d) {
+    var p = el("div", "pending", "Winners for " + NAMES[selected - 1] + " have not been announced yet.");
+    p.style.gridColumn = "1 / -1";
+    cards.appendChild(p);
+  } else {
+    ["best", "most", "first"].forEach(function (k) {
+      var ws = W(selected, k);
+      if (!ws.length) {
+        var pc = el("article", "card " + k);
+        var ptag = el("div", "tag"); ptag.appendChild(el("span", "dot")); ptag.appendChild(document.createTextNode(AWARD[k]));
+        var pb = el("div", "body"); pb.appendChild(el("p", "what", "Not announced yet."));
+        pc.appendChild(ptag); pc.appendChild(pb); cards.appendChild(pc);
+        return;
+      }
+      ws.forEach(function (w) {
+        if (k === "best") cards.appendChild(card(k, AWARD[k], w, w.name, w.dept, w.title, w.saving, "result"));
+        else if (k === "most") cards.appendChild(card(k, AWARD[k], w, w.name, w.dept, "", String(w.count), w.count === 1 ? "Kaizen submitted" : "Kaizens submitted"));
+        else cards.appendChild(card(k, AWARD[k], w, w.name, w.dept, w.title, w.date, "first submission"));
+      });
+    });
+  }
+
+  var certs = document.getElementById("certs");
+  certs.textContent = "";
+  var certCount = 0;
+  ["best", "most", "first"].forEach(function (k) { W(selected, k).forEach(function (w) { certs.appendChild(certBox(k, selected, false, w)); certCount++; }); });
+  document.getElementById("certTitle").hidden = certs.hidden = !certCount;
+
+  var winners = {};
+  ["best", "most", "first"].forEach(function (k) { W(selected, k).forEach(function (w) { winners[w.name] = 1; }); });
+  var seen = {}, people = [];
+  KAIZENS.forEach(function (z) {
+    if (z.m !== selected || winners[z.name]) return;
+    if (!seen[z.name]) { seen[z.name] = { name: z.name, dept: z.dept, titles: [] }; people.push(seen[z.name]); }
+    seen[z.name].titles.push(z.title);
+  });
+  people.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  var ol = document.getElementById("others");
+  ol.textContent = "";
+  document.getElementById("othersTitle").textContent = people.length ? "Other Participants (" + people.length + ")" : "Other Participants";
+  if (!people.length) {
+    ol.appendChild(el("li", "none", d ? "No other submissions recorded for this month." : "No submissions yet."));
+  } else {
+    people.forEach(function (q) {
+      var li = el("li");
+      li.style.cursor = "pointer";
+      var top = el("div"); var nb = personLink(q.name); nb.classList.add("n"); top.appendChild(nb); top.appendChild(el("span", "d", q.dept));
+      li.appendChild(top);
+      li.appendChild(el("span", "t", q.titles[0] + (q.titles.length > 1 ? " (+" + (q.titles.length - 1) + " more)" : "")));
+      li.addEventListener("click", function (e) { if (e.target.closest("button")) return; openPerson(q.name); });
+      ol.appendChild(li);
+    });
+  }
+
+  var rows = document.getElementById("rows");
+  rows.textContent = "";
+  for (var i = 1; i <= 12; i++) {
+    (function (i) {
+      var tr = el("tr", i === selected ? "sel" : "");
+      tr.appendChild(el("th", null, NAMES[i - 1]));
+      var x = DATA[i];
+      if (x) {
+        ["best", "most", "first"].forEach(function (k) {
+          var td = el("td"), ws = W(i, k);
+          if (!ws.length) td.appendChild(el("div", "dim", "Not announced yet"));
+          ws.forEach(function (w) {
+            td.appendChild(el("div", null, w.name));
+            td.appendChild(el("div", "dim", k === "best" ? w.dept : k === "most" ? w.count + " submitted" : w.date));
+          });
+          tr.appendChild(td);
+        });
+      } else {
+        var td = el("td", "dim", beforeStart(i) ? "Program had not started yet" : "Not announced yet"); td.colSpan = 3; tr.appendChild(td);
+      }
+      tr.addEventListener("click", function () { if (beforeStart(i)) return; select(i, true); window.scrollTo({ top: 0, behavior: "smooth" }); });
+      rows.appendChild(tr);
+    })(i);
+  }
+  renderStars();
+}
+
+var starMonth = 0;
+var NODEPT = "No department listed";
+
+function starText(n) {
+  if (n <= 0) return "☆";
+  if (n <= 10) { var s = ""; for (var i = 0; i < n; i++) s += "★"; return s; }
+  return "★ × " + n;
+}
+
+function renderStars() {
+  var sel = document.getElementById("starMonth");
+  sel.textContent = "";
+  var all = el("option", null, "Whole year " + YEAR); all.value = "0"; sel.appendChild(all);
+  for (var m = 1; m <= 12; m++) {
+    if (beforeStart(m)) continue;
+    var o = el("option", null, NAMES[m - 1] + " " + YEAR); o.value = String(m); sel.appendChild(o);
+  }
+  if (starMonth && beforeStart(starMonth)) starMonth = 0;
+  sel.value = String(starMonth);
+  document.getElementById("starsTitle").textContent = "Stars Board " + YEAR;
+
+  var by = {};
+  function dept(n) { return by[n] || (by[n] = { name: n, people: {} }); }
+  KAIZENS.forEach(function (z) {
+    var d = dept(z.dept || "");
+    var p = d.people[z.name] || (d.people[z.name] = { name: z.name, n: 0 });
+    if (!starMonth || z.m === starMonth) p.n++;   /* everyone who has a Kaizen this year stays listed in every month; the stars count only the selected month */
+  });
+  Object.keys(ROSTER).forEach(function (dn) {
+    (ROSTER[dn] || []).forEach(function (nm) {
+      var d = dept(dn);
+      if (!d.people[nm]) d.people[nm] = { name: nm, n: 0 };
+    });
+  });
+
+  var list = Object.keys(by).map(function (k) { return by[k]; });
+  list.sort(function (a, b) {
+    var an = Object.keys(a.people).length, bn = Object.keys(b.people).length;   /* fewest members first */
+    if (an !== bn) return an - bn;
+    if (!a.name) return 1; if (!b.name) return -1;
+    return a.name.localeCompare(b.name);
+  });
+
+  var starred = 0, stars = 0;
+  var wrap = document.getElementById("depts");
+  wrap.textContent = "";
+  list.forEach(function (d) {
+    var ppl = Object.keys(d.people).map(function (k) { return d.people[k]; });
+    ppl.sort(function (a, b) { return (b.n - a.n) || a.name.localeCompare(b.name); });
+    var tot = 0, part = 0;
+    ppl.forEach(function (p) { tot += p.n; if (p.n) part++; });
+    starred += part; stars += tot;
+
+    var card = el("section", "dept-card");
+    var head = el("div", "dept-head");
+    head.appendChild(el("h3", null, d.name || NODEPT));
+    head.appendChild(el("span", "tot", "★ " + tot));
+    card.appendChild(head);
+    var ul = el("ul");
+    ppl.forEach(function (p) {
+      var li = el("li");
+      var nm = el("span", "pn");
+      if (p.n) nm.appendChild(personLink(p.name)); else { nm.textContent = p.name; nm.classList.add("none"); }
+      li.appendChild(nm);
+      var st = el("span", p.n ? "stars" : "stars zero", starText(p.n));
+      st.setAttribute("aria-label", p.n + (p.n === 1 ? " star" : " stars"));
+      if (!p.n) { var sm = el("small", null, "no Kaizen yet"); st.appendChild(sm); }
+      li.appendChild(st);
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+    wrap.appendChild(card);
+  });
+  if (!list.length) wrap.appendChild(el("div", "pending", "No Kaizens recorded for this period yet."));
+
+  var sum = document.getElementById("starSum");
+  sum.textContent = "";
+  var b1 = el("b", null, String(starred)), b2 = el("b", null, String(stars)), b3 = el("b", null, String(list.length));
+  sum.appendChild(b1); sum.appendChild(document.createTextNode(starred === 1 ? " person · " : " people · "));
+  sum.appendChild(b2); sum.appendChild(document.createTextNode(stars === 1 ? " star · " : " stars · "));
+  sum.appendChild(b3); sum.appendChild(document.createTextNode(list.length === 1 ? " department" : " departments"));
+}
+
+function showView(v, fromUser) {
+  document.getElementById("homeView").hidden = v !== "home";
+  document.getElementById("boardView").hidden = v !== "board";
+  document.getElementById("starsView").hidden = v !== "stars";
+  if (fromUser) {
+    if (v === "home") { try { history.replaceState(null, "", "#home"); } catch (e) {} }
+    else if (v === "stars") { try { history.replaceState(null, "", "#stars"); } catch (e) {} }
+    else { updateHash(); }
+    window.scrollTo(0, 0);
+  }
+}
+
+function renderHome() {
+  var co = document.getElementById("coords");
+  co.textContent = "";
+  COORDINATORS.forEach(function (c) {
+    var card = el("article", "coord");
+    var av = el("div", "avatar");
+    var src = c.photo || PHOTOS[c.name];
+    if (src) {
+      var im = document.createElement("img"); im.src = src; im.alt = "Photo of " + c.name;
+      av.appendChild(im);
+    } else {
+      av.textContent = c.name ? initials(c.name) : "?";
+      av.setAttribute("aria-hidden", "true");
+    }
+    var tx = el("div");
+    tx.appendChild(el("div", c.name ? "cname" : "cname todo", c.name || "Name to be added"));
+    tx.appendChild(el("div", "dept", c.role));
+    if (c.dept) tx.appendChild(el("div", "dept", c.dept));
+    card.appendChild(av); card.appendChild(tx);
+    co.appendChild(card);
+  });
+}
+
+window.addEventListener("hashchange", function () {
+  var raw = (location.hash || "").replace("#", "");
+  if (raw === "home" || raw === "") { showView("home", false); return; }
+  if (raw === "stars") { showView("stars", false); return; }
+  var h = fromHash();
+  if (!h) { if (raw === "board") showView("board", false); return; }
+  if (h.y && h.y !== YEAR && yearList().indexOf(h.y) >= 0) setYear(h.y, h.m); else select(h.m, false);
+  showView("board", false);
+});
+document.getElementById("closeBtn").addEventListener("click", closePerson);
+document.getElementById("overlay").addEventListener("click", function (e) { if (e.target === this) closePerson(); });
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("overlay").hidden) closePerson(); });
+document.getElementById("yearSel").addEventListener("change", function () { setYear(parseInt(this.value, 10)); updateHash(); });
+document.getElementById("yPrev").addEventListener("click", function () { setYear(YEAR - 1); updateHash(); });
+document.getElementById("yNext").addEventListener("click", function () { setYear(YEAR + 1); updateHash(); });
+var h0 = fromHash();
+var yl0 = yearList();
+var y0 = new Date().getFullYear();
+if (h0 && h0.y && yl0.indexOf(h0.y) >= 0) y0 = h0.y;
+if (yl0.indexOf(y0) < 0) y0 = yl0[yl0.length - 1];
+setYear(y0, h0 ? h0.m : null);
+renderHome();
+document.getElementById("backHome").addEventListener("click", function () { showView("home", true); });
+document.getElementById("ctaBoard").addEventListener("click", function () { showView("board", true); });
+document.getElementById("ctaStars").addEventListener("click", function () { showView("stars", true); });
+document.getElementById("toStars").addEventListener("click", function () { showView("stars", true); });
+document.getElementById("starsHome").addEventListener("click", function () { showView("home", true); });
+document.getElementById("starsToBoard").addEventListener("click", function () { showView("board", true); });
+document.getElementById("starMonth").addEventListener("change", function () { starMonth = parseInt(this.value, 10) || 0; renderStars(); });
+var rawHash0 = (location.hash || "").replace("#", "");
+showView(rawHash0 === "stars" ? "stars" : ((h0 || rawHash0 === "board") ? "board" : "home"), false);
+</script>
+
+</body></html>
